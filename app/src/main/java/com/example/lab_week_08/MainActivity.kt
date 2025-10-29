@@ -57,30 +57,36 @@ class MainActivity : AppCompatActivity() {
         //OneTimeWorkRequest executes the request just once
         //PeriodicWorkRequest executed the request periodically
 
-        //Create a one time work request that includes
-        //all the constraints and inputs needed for the worker
-        //This request is created for the FirstWorker class
+        //Create work requests for all three workers
         val firstRequest = OneTimeWorkRequest
             .Builder(FirstWorker::class.java)
             .setConstraints(networkConstraints)
             .setInputData(getIdInputData(FirstWorker.INPUT_DATA_ID, id))
             .build()
 
-        //This request is created for the SecondWorker class
         val secondRequest = OneTimeWorkRequest
             .Builder(SecondWorker::class.java)
             .setConstraints(networkConstraints)
             .setInputData(getIdInputData(SecondWorker.INPUT_DATA_ID, id))
             .build()
 
+        val thirdRequest = OneTimeWorkRequest
+            .Builder(ThirdWorker::class.java)
+            .setConstraints(networkConstraints)
+            .setInputData(getIdInputData(ThirdWorker.INPUT_DATA_ID, id))
+            .build()
+
         //Sets up the process sequence from the work manager instance
-        //Here it starts with FirstWorker, then SecondWorker
+        //Here it starts with FirstWorker, then SecondWorker, then ThirdWorker
         workManager.beginWith(firstRequest)
             .then(secondRequest)
+            .then(thirdRequest)
             .enqueue()
 
         //All that's left to do is getting the output
         //Here, we receive the output and displaying the result as a toast message
+
+        //Observer for FirstWorker
         workManager.getWorkInfoByIdLiveData(firstRequest.id)
             .observe(this) { info ->
                 if (info.state.isFinished) {
@@ -88,6 +94,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
+        //Observer for SecondWorker
         workManager.getWorkInfoByIdLiveData(secondRequest.id)
             .observe(this) { info ->
                 if (info.state.isFinished) {
@@ -95,6 +102,17 @@ class MainActivity : AppCompatActivity() {
                     Log.d("MainActivity", "About to launch notification service")
                     launchNotificationService()
                     Log.d("MainActivity", "Notification service launch called")
+                }
+            }
+
+        //Observer for ThirdWorker
+        workManager.getWorkInfoByIdLiveData(thirdRequest.id)
+            .observe(this) { info ->
+                if (info.state.isFinished) {
+                    showResult("Third process is done")
+                    Log.d("MainActivity", "About to launch second notification service")
+                    launchSecondNotificationService()
+                    Log.d("MainActivity", "Second notification service launch called")
                 }
             }
     }
@@ -129,6 +147,27 @@ class MainActivity : AppCompatActivity() {
         //Start the foreground service through the Service Intent
         ContextCompat.startForegroundService(this, serviceIntent)
         Log.d("MainActivity", "Foreground service started")
+    }
+
+    //Launch the SecondNotificationService
+    private fun launchSecondNotificationService() {
+        Log.d("MainActivity", "launchSecondNotificationService started")
+
+        //Observe if the service process is done or not
+        SecondNotificationService.trackingCompletion.observe(this) { Id ->
+            Log.d("MainActivity", "Received completion for ID: $Id")
+            showResult("Process for Notification Channel ID $Id is done!")
+        }
+
+        //Create an Intent to start the SecondNotificationService
+        val serviceIntent = Intent(this, SecondNotificationService::class.java).apply {
+            putExtra(SecondNotificationService.EXTRA_ID, "002")
+        }
+
+        Log.d("MainActivity", "Starting second foreground service")
+        //Start the foreground service through the Service Intent
+        ContextCompat.startForegroundService(this, serviceIntent)
+        Log.d("MainActivity", "Second foreground service started")
     }
 
     companion object {
