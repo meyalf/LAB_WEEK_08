@@ -1,11 +1,11 @@
-package com.example.lab_week_08
+package com.example.lab_week_08.worker
 
 import android.content.Context
 import androidx.work.Data
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 
-class ThirdWorker(
+class SecondWorker(
     context: Context,
     workerParams: WorkerParameters
 ) : Worker(context, workerParams) {
